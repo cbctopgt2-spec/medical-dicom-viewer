@@ -1,0 +1,6 @@
+streamlit
+numpy
+pydicom
+matplotlib
+pyvista
+vtk
