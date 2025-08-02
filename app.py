@@ -6,12 +6,16 @@ import matplotlib.pyplot as plt
 
 # For 3D rendering
 import pyvista as pv
-from pyvista import examples
 
 st.set_page_config(page_title="DICOM MPR & Volume Rendering", layout="wide")
 st.title("🧠 DICOM Viewer: Axial, Coronal, Sagittal + 3D Rendering")
 
-uploaded_file = st.file_uploader("ডিকম আপলোড করুন (.dcm)", type=["dcm"])
+# Allow multiple file upload
+uploaded_files = st.file_uploader(
+    "ডিকম ফাইলগুলো একসাথে আপলোড করুন (.dcm)", 
+    type=["dcm"], 
+    accept_multiple_files=True
+)
 
 def show_slice(img, title):
     fig, ax = plt.subplots()
@@ -20,28 +24,37 @@ def show_slice(img, title):
     ax.axis("off")
     st.pyplot(fig, clear_figure=True)
 
-if uploaded_file:
-    dcm = pydicom.dcmread(uploaded_file)
-    try:
-        arr = apply_voi_lut(dcm.pixel_array, dcm).astype(np.float32)
-    except:
-        arr = dcm.pixel_array.astype(np.float32)
+if uploaded_files:
+    # Read all DICOM files
+    slices = []
+    for f in uploaded_files:
+        dcm = pydicom.dcmread(f)
+        slices.append(dcm)
 
-    # নিশ্চিত হোন তা 3D array
-    if arr.ndim == 2:
-        st.error("এই DICOM শুধুমাত্র 2D ছবি—3D সিরিজ নেই।")
-        st.stop()
-    elif arr.ndim != 3:
-        st.error(f"অজ্ঞাত আকারের array: shape={arr.shape}")
-        st.stop()
+    # Sort by InstanceNumber if available
+    try:
+        slices.sort(key=lambda x: int(x.InstanceNumber))
+    except AttributeError:
+        st.warning("⚠️ DICOM ফাইলগুলো InstanceNumber দিয়ে sort করা যায়নি। আপলোড করার আগে নিশ্চিত হোন যে সঠিক ক্রমে আছে।")
+
+    # Convert to numpy arrays and stack
+    img_arrays = []
+    for dcm in slices:
+        try:
+            arr = apply_voi_lut(dcm.pixel_array, dcm).astype(np.float32)
+        except Exception:
+            arr = dcm.pixel_array.astype(np.float32)
+        img_arrays.append(arr)
+
+    vol = np.stack(img_arrays, axis=0)
 
     # Normalize
-    arr -= arr.min()
-    arr /= arr.max()
-    arr *= 255
-    vol = arr.astype(np.uint8)
+    vol -= vol.min()
+    vol /= vol.max()
+    vol *= 255
+    vol = vol.astype(np.uint8)
 
-    st.success(f"ডেটা লোড হয়েছে: shape={vol.shape}")
+    st.success(f"ডেটা লোড হয়েছে: shape = {vol.shape}")
 
     # Scrollable slice viewers
     axial_idx = st.slider("Axial Slice (scroll)", 0, vol.shape[0]-1, vol.shape[0]//2, key="ax")
@@ -62,11 +75,11 @@ if uploaded_file:
     # Interactive 3D rendering
     volume = pv.wrap(vol)
     p = pv.Plotter(off_screen=True)
-    p.add_volume(volume, cmap="gray", opacity="sigmoid_6")  # window/level adjust করতে পারেন
+    p.add_volume(volume, cmap="gray", opacity="sigmoid_6")
     p.camera_position = 'iso'
     img = p.show(screenshot=True)
 
-    st.image(img, caption="3D Rendering view (interactive)", use_column_width=True)
+    st.image(img, caption="3D Rendering view", use_column_width=True)
 
 else:
-    st.info("দয়া করে একটি DICOM সিরিজ আপলোড করুন (৩D) যাতে multiple slices থাকে।")
+    st.info("দয়া করে একাধিক DICOM ফাইল আপলোড করুন যাতে ৩D ভলিউম তৈরি করা যায়।")
