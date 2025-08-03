@@ -2,9 +2,10 @@ import streamlit as st
 import numpy as np
 import pydicom
 from pydicom.pixel_data_handlers.util import apply_voi_lut
+import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="DICOM MPR & Volume Rendering", layout="wide")
+st.set_page_config(page_title="DICOM Viewer", layout="wide")
 st.title("🧠 DICOM Viewer: Axial, Coronal, Sagittal + 3D Rendering")
 
 # Allow multiple file upload
