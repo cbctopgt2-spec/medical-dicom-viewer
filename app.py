@@ -2,10 +2,7 @@ import streamlit as st
 import numpy as np
 import pydicom
 from pydicom.pixel_data_handlers.util import apply_voi_lut
-import matplotlib.pyplot as plt
-
-# For 3D rendering
-import pyvista as pv
+import plotly.graph_objects as go
 
 st.set_page_config(page_title="DICOM MPR & Volume Rendering", layout="wide")
 st.title("🧠 DICOM Viewer: Axial, Coronal, Sagittal + 3D Rendering")
@@ -72,14 +69,34 @@ if uploaded_files:
     st.markdown("---")
     st.markdown("### 🧊 ৩D Volume Rendering")
 
-    # Interactive 3D rendering
-    volume = pv.wrap(vol)
-    p = pv.Plotter(off_screen=True)
-    p.add_volume(volume, cmap="gray", opacity="sigmoid_6")
-    p.camera_position = 'iso'
-    img = p.show(screenshot=True)
+    # Interactive 3D rendering using Plotly
+    x = np.arange(vol.shape[0])
+    y = np.arange(vol.shape[1])
+    z = np.arange(vol.shape[2])
+    
+    # Create a 3D surface plot for volume rendering
+    fig = go.Figure(data=go.Volume(
+        x=np.repeat(x, len(y)*len(z)),
+        y=np.tile(np.repeat(y, len(z)), len(x)),
+        z=np.tile(z, len(x)*len(y)),
+        value=vol.flatten(),
+        opacity=0.1,  # Adjust opacity for better visibility
+        surface_count=20,
+        colorscale="Gray",
+        colorbar=dict(title="Intensity")
+    ))
 
-    st.image(img, caption="3D Rendering view", use_column_width=True)
+    fig.update_layout(
+        scene=dict(
+            xaxis_title="X-axis",
+            yaxis_title="Y-axis",
+            zaxis_title="Z-axis",
+            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
+        ),
+        title="3D Volume Rendering"
+    )
+
+    st.plotly_chart(fig)
 
 else:
     st.info("দয়া করে একাধিক DICOM ফাইল আপলোড করুন যাতে ৩D ভলিউম তৈরি করা যায়।")
