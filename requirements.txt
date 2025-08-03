@@ -4,4 +4,3 @@ pydicom
 matplotlib
 pyvista
 vtk
-python-gdcm
