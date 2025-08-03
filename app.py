@@ -4,6 +4,7 @@ import pydicom
 from pydicom.pixel_data_handlers.util import apply_voi_lut
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+import time  # To simulate loading time for better UX
 
 st.set_page_config(page_title="DICOM Viewer", layout="wide")
 st.title("🧠 DICOM Viewer: Axial, Coronal, Sagittal + 3D Rendering")
@@ -23,11 +24,15 @@ def show_slice(img, title):
     st.pyplot(fig, clear_figure=True)
 
 if uploaded_files:
+    # Add a progress bar
+    progress = st.progress(0)
+
     # Read all DICOM files
     slices = []
-    for f in uploaded_files:
+    for i, f in enumerate(uploaded_files):
         dcm = pydicom.dcmread(f)
         slices.append(dcm)
+        progress.progress((i + 1) / len(uploaded_files))
 
     # Sort by InstanceNumber if available
     try:
@@ -70,19 +75,18 @@ if uploaded_files:
     st.markdown("---")
     st.markdown("### 🧊 ৩D Volume Rendering")
 
-    # Interactive 3D rendering using Plotly
+    # Interactive 3D rendering using Plotly (with reduced volume data for performance)
     x = np.arange(vol.shape[0])
     y = np.arange(vol.shape[1])
     z = np.arange(vol.shape[2])
-    
-    # Create a 3D surface plot for volume rendering
+
     fig = go.Figure(data=go.Volume(
         x=np.repeat(x, len(y)*len(z)),
         y=np.tile(np.repeat(y, len(z)), len(x)),
         z=np.tile(z, len(x)*len(y)),
         value=vol.flatten(),
         opacity=0.1,  # Adjust opacity for better visibility
-        surface_count=20,
+        surface_count=10,  # Reduce the surface count to improve performance
         colorscale="Gray",
         colorbar=dict(title="Intensity")
     ))
