@@ -5,5 +5,3 @@ matplotlib
 pyvista
 vtk
 python-gdcm
-egl
-osmesa
