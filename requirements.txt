@@ -3,5 +3,5 @@ numpy
 pydicom
 matplotlib
 pyvista
-vtk
 python-gdcm
+plotly
